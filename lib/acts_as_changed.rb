@@ -8,13 +8,16 @@ module ActiveRecord
       module ClassMethods
         def acts_as_changed
           unless self.included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
-            class << self
-              alias_method :instantiate_without_changed, :instantiate
-            end
-	          alias_method :initialize_without_changed, :initialize
-	          alias_method :clone_without_changed, :clone
-	          alias_method :create_or_update_without_changed, :create_or_update
             include InstanceMethods
+	          alias_method_chain :initialize, :changed
+	          alias_method_chain :clone, :changed
+	          alias_method_chain :create_or_update, :changed
+	          alias_method_chain :update_attribute, :changed
+	          alias_method_chain :update_attributes!, :changed
+	          alias_method_chain :update_attributes, :changed
+            class << self
+              alias_method_chain :instantiate, :changed
+            end
           end
         end
       end
@@ -31,20 +34,20 @@ module ActiveRecord
 	          columns_hash.has_key?(key.to_s)
 	        end
 	        
-	        def instantiate(record)
+	        def instantiate_with_changed(record)
 	          object = instantiate_without_changed(record)
 	          object.instance_variable_set("@original_attributes", record.dup)
 	          object
 	        end
         end
         
-	      def initialize(attributes = nil)
+	      def initialize_with_changed(attributes = nil)
 	        initialize_without_changed attributes
 	        @original_attributes = {}
 	        yield self if block_given?
 	      end
 	
-	      def clone
+	      def clone_with_changed
 	        clone_without_changed
 	        self.class.new do |record|
 	          record.send :instance_variable_set, '@original_attributes', attributes
@@ -161,7 +164,7 @@ module ActiveRecord
 	        save_changes || raise(RecordNotSaved)
 	      end
 	
-	      def update_attribute(name, value)
+	      def update_attribute_with_changed(name, value)
 	        send(name.to_s + '=', value)
 	        save_changes(false)
 	      end
@@ -171,18 +174,14 @@ module ActiveRecord
 	        save_changes
 	      end
 	
-	      def update_attributes(attributes)
+	      def update_attributes_with_changed(attributes)
 	        self.attributes = attributes
 	        save_changes
 	      end
 	      
-	      def update_attributes!(attributes)
+	      def update_attributes_with_changed!(attributes)
 	        self.attributes = attributes
 	        save_changes!
-	      end
-	
-	      def attribute_names
-	        attributes_from_column_definition.keys.sort
 	      end
 	
 	      def changed_attribute_names
@@ -196,7 +195,7 @@ module ActiveRecord
 	      end
 	      
 	    private
-	      def create_or_update
+	      def create_or_update_with_changed
 	        result = create_or_update_without_changed
 	        @original_attributes = attributes if result
 	      end
