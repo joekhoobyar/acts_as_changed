@@ -74,7 +74,7 @@ module ActiveRecord
 
         # Checks a single attribute to see if it has changed.	
 	      def attribute_changed?(attribute)
-	        @original_attributes[attribute] != @attributes[attribute]
+	        read_original_attribute(attribute) != read_attribute(attribute)
 	      end
 	      alias :attr_changed? :attribute_changed?
 	
@@ -155,8 +155,12 @@ module ActiveRecord
 	        end
 	      end
 	
-	      def changed?
-	        (new_record? || ! original_attributes.diff(attributes).empty?) ? true : false
+	      def changed?(names=nil)
+	        return true if new_record?
+	        return ! original_attributes.diff(attributes).empty? if names.nil?
+	        return attr_changed?(names) unless names.is_a? Array
+	        names.each do |name| return true if attr_changed?(name) end
+	        false
 	      end
 	
 	      def save_if_changed
