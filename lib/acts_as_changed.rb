@@ -216,6 +216,7 @@ module ActiveRecord
 	      end
 	      
 	      def update_attributes_with_only(attributes)
+	        return unless attributes.is_a? Hash
 	        self.attributes = attributes
 	        save_only attributes.keys
 	      end
@@ -226,6 +227,7 @@ module ActiveRecord
 	      end
 	
 	      def update_attributes_with_only!(attributes)
+	        return unless attributes.is_a? Hash
 	        self.attributes = attributes
 	        save_only! attributes.keys
 	      end
