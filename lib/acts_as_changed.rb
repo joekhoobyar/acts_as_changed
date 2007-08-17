@@ -6,15 +6,17 @@ module ActiveRecord
       end
       
       module ClassMethods
-        def acts_as_changed
+        def acts_as_changed(options={})
           unless self.included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
             include InstanceMethods
 	          alias_method_chain :initialize, :changed
 	          alias_method_chain :clone, :changed
 	          alias_method_chain :create_or_update, :changed
-	          alias_method_chain :update_attribute, :changed
-	          alias_method_chain :update_attributes!, :changed
-	          alias_method_chain :update_attributes, :changed
+	          with = options[:update_changes] ? :changed : :only
+	          alias_method_chain :update_attribute, with
+	          alias_method_chain :update_attribute_without_validation_skipping, with
+	          alias_method_chain :update_attributes!, with
+	          alias_method_chain :update_attributes, with
             class << self
               alias_method_chain :instantiate, :changed
             end
@@ -131,13 +133,24 @@ module ActiveRecord
 	      end
 	      alias_method :changes, :changed_attributes
 		      
-	      # Returns copy of the attributes hash where all the values have been safely quoted for use in
+	      # Returns a copy of changed attributes where all the values have been safely quoted for use in
 	      # an SQL statement.
 	      def changed_attributes_with_quotes(include_primary_key = true)
 	        changed_attributes.inject({}) do |quoted, (name, value)|
 	          if column = column_for_attribute(name)
 	            quoted[name] = quote_value(value, column) unless !include_primary_key && column.primary
 	          end
+	          quoted
+	        end
+	      end
+		      
+	      # Returns a copy of the named attributes where all the values have been safely quoted for use in
+	      # an SQL statement.
+	      def named_attributes_with_quotes(names)
+	        names.inject({}) do |quoted, name|
+	          if column = column_for_attribute(name)
+		          quoted[name] = quote_value(attributes[name.to_s], column)
+		        end
 	          quoted
 	        end
 	      end
@@ -163,15 +176,34 @@ module ActiveRecord
 	      def save_changes!
 	        save_changes || raise(RecordNotSaved)
 	      end
+	      
+	      def save_only(names, perform_validation = true)
+		      return false if perform_validation && !valid?
+	        create_or_update_only(names) || raise(RecordNotSaved)
+	      end
+	      
+	      def save_only!
+	        save_changes(names) || raise(RecordNotSaved)
+	      end
 	
 	      def update_attribute_with_changed(name, value)
 	        send(name.to_s + '=', value)
 	        save_changes(false)
 	      end
 	
-	      def update_attribute_without_validation_skipping(name, value)
+	      def update_attribute_with_only(name, value)
+	        send(name.to_s + '=', value)
+	        save_only([name], false)
+	      end
+	
+	      def update_attribute_without_validation_skipping_with_changed(name, value)
 	        send(name.to_s + '=', value)
 	        save_changes
+	      end
+	
+	      def update_attribute_without_validation_skipping_with_only(name, value)
+	        send(name.to_s + '=', value)
+	        save_only([name])
 	      end
 	
 	      def update_attributes_with_changed(attributes)
@@ -179,9 +211,19 @@ module ActiveRecord
 	        save_changes
 	      end
 	      
+	      def update_attributes_with_only(attributes)
+	        self.attributes = attributes
+	        save_only attributes.keys
+	      end
+	      
 	      def update_attributes_with_changed!(attributes)
 	        self.attributes = attributes
 	        save_changes!
+	      end
+	
+	      def update_attributes_with_only!(attributes)
+	        self.attributes = attributes
+	        save_only! attributes.keys
 	      end
 	
 	      def changed_attribute_names
@@ -208,7 +250,15 @@ module ActiveRecord
 	        true
 	      end
 	
-	      # Updates the associated record with values matching those of the instance attributes.
+	      def create_or_update_only(names)
+	        raise ReadOnlyRecord if readonly?
+	        result = new_record? ? create : update_only(names)
+	        return false if result == false
+	        @original_attributes = attributes
+	        true
+	      end
+	
+	      # Updates the associated record with the changed instance attributes.
 	      # Returns the number of affected rows.
 	      def update_changed
 		      if record_timestamps
@@ -219,6 +269,22 @@ module ActiveRecord
 	        connection.update(
 	          "UPDATE #{self.class.table_name} " +
 	          "SET #{quoted_comma_pair_list(connection, changed_attributes_with_quotes(false))} " +
+	          "WHERE #{self.class.primary_key} = #{quote_value(id)}",
+	          "#{self.class.name} Update"
+	        )
+	      end
+	
+	      # Updates the associated record with the named attributes only.
+	      # Returns the number of affected rows.
+	      def update_only(names)
+		      if record_timestamps
+		        t = self.class.default_timezone == :utc ? Time.now.utc : Time.now
+		        write_attribute('updated_at', t) and names << :updated_at if respond_to?(:updated_at)
+		        write_attribute('updated_on', t) and names << :updated_on if respond_to?(:updated_on)
+		      end
+	        connection.update(
+	          "UPDATE #{self.class.table_name} " +
+	          "SET #{quoted_comma_pair_list(connection, named_attributes_with_quotes(names))} " +
 	          "WHERE #{self.class.primary_key} = #{quote_value(id)}",
 	          "#{self.class.name} Update"
 	        )
