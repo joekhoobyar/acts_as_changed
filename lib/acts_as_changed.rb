@@ -244,20 +244,25 @@ module ActiveRecord
 	      def create_or_update_with_changed
 	        result = create_or_update_without_changed
 	        @original_attributes = attributes if result
+	        result
 	      end
 	
 	      def create_or_update_changed
 	        raise ReadOnlyRecord if readonly?
+		      return false if callback(:before_save) == false
 	        result = new_record? ? create : update_changed
 	        return false if result == false
+		      callback(:after_save)
 	        @original_attributes = attributes
 	        true
 	      end
 	
 	      def create_or_update_only(names)
 	        raise ReadOnlyRecord if readonly?
+		      return false if callback(:before_save) == false
 	        result = new_record? ? create : update_only(names)
 	        return false if result == false
+		      callback(:after_save)
 	        @original_attributes = attributes
 	        true
 	      end
@@ -270,12 +275,15 @@ module ActiveRecord
 		        write_attribute('updated_at', t) if respond_to?(:updated_at)
 		        write_attribute('updated_on', t) if respond_to?(:updated_on)
 		      end
-	        connection.update(
+		      return false if callback(:before_update) == false
+	        result = connection.update(
 	          "UPDATE #{self.class.table_name} " +
 	          "SET #{quoted_comma_pair_list(connection, changed_attributes_with_quotes(false))} " +
 	          "WHERE #{self.class.primary_key} = #{quote_value(id)}",
 	          "#{self.class.name} Update"
 	        )
+		      callback(:after_update)
+		      result
 	      end
 	
 	      # Updates the associated record with the named attributes only.
@@ -286,12 +294,15 @@ module ActiveRecord
 		        write_attribute('updated_at', t) and names << :updated_at if respond_to?(:updated_at)
 		        write_attribute('updated_on', t) and names << :updated_on if respond_to?(:updated_on)
 		      end
-	        connection.update(
+	        return false if callback(:before_update) == false
+	        result = connection.update(
 	          "UPDATE #{self.class.table_name} " +
 	          "SET #{quoted_comma_pair_list(connection, named_attributes_with_quotes(names))} " +
 	          "WHERE #{self.class.primary_key} = #{quote_value(id)}",
 	          "#{self.class.name} Update"
 	        )
+		      callback(:after_update)
+		      result
 	      end
 	      
 	      def read_attribute_default(attr_name)
