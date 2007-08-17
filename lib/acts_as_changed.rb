@@ -186,7 +186,7 @@ module ActiveRecord
 	        create_or_update_only(names) || raise(RecordNotSaved)
 	      end
 	      
-	      def save_only!
+	      def save_only!(names)
 	        save_changes(names) || raise(RecordNotSaved)
 	      end
 	
