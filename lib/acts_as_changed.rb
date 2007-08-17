@@ -278,9 +278,10 @@ module ActiveRecord
 		        write_attribute('updated_on', t) if respond_to?(:updated_on)
 		      end
 		      return false if callback(:before_update) == false
-	        result = connection.update(
+		      chgs = changed_attributes_with_quotes(false)
+	        result = chgs.empty? || connection.update(
 	          "UPDATE #{self.class.table_name} " +
-	          "SET #{quoted_comma_pair_list(connection, changed_attributes_with_quotes(false))} " +
+	          "SET #{quoted_comma_pair_list(connection, chgs)} " +
 	          "WHERE #{self.class.primary_key} = #{quote_value(id)}",
 	          "#{self.class.name} Update"
 	        )
@@ -297,7 +298,7 @@ module ActiveRecord
 		        write_attribute('updated_on', t) and names << :updated_on if respond_to?(:updated_on)
 		      end
 	        return false if callback(:before_update) == false
-	        result = connection.update(
+	        result = names.empty? || connection.update(
 	          "UPDATE #{self.class.table_name} " +
 	          "SET #{quoted_comma_pair_list(connection, named_attributes_with_quotes(names))} " +
 	          "WHERE #{self.class.primary_key} = #{quote_value(id)}",
