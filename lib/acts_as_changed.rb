@@ -294,13 +294,22 @@ module ActiveRecord
 	      def update_only(names)
 		      if record_timestamps
 		        t = self.class.default_timezone == :utc ? Time.now.utc : Time.now
-		        write_attribute('updated_at', t) and names << :updated_at if respond_to?(:updated_at)
-		        write_attribute('updated_on', t) and names << :updated_on if respond_to?(:updated_on)
+		        if respond_to?(:updated_at)
+			        logger.info 'what the fuck?'
+			        write_attribute('updated_at', t)
+			        names << :updated_at
+			      end
+			      if respond_to?(:updated_on)
+			        logger.info 'what the fuck? on'
+			        write_attribute('updated_on', t)
+			        names << :updated_on 
+			      end
 		      end
 	        return false if callback(:before_update) == false
-	        result = names.empty? || connection.update(
+	        values = quoted_comma_pair_list(connection, named_attributes_with_quotes(names))
+	        result = values.nil? || (values = values.strip).blank? || connection.update(
 	          "UPDATE #{self.class.table_name} " +
-	          "SET #{quoted_comma_pair_list(connection, named_attributes_with_quotes(names))} " +
+	          "SET #{values} " +
 	          "WHERE #{self.class.primary_key} = #{quote_value(id)}",
 	          "#{self.class.name} Update"
 	        )
