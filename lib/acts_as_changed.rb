@@ -174,20 +174,20 @@ module ActiveRecord
 	      def save_changes(perform_validation = true)
 	        return true unless new_record? or changed?
 		      return false if perform_validation && !valid?
-	        create_or_update_changed || raise(RecordNotSaved)
+	        create_or_update_changed
 	      end
 	      
 	      def save_changes!
-	        save_changes || raise(RecordNotSaved)
+	        save_changes || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	      
 	      def save_only(names, perform_validation = true)
 		      return false if perform_validation && !valid?
-	        create_or_update_only(names) || raise(RecordNotSaved)
+	        create_or_update_only(names)
 	      end
 	      
 	      def save_only!(names)
-	        save_changes(names) || raise(RecordNotSaved)
+	        save_changes(names) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	
 	      def update_attribute_with_changed(name, value)
