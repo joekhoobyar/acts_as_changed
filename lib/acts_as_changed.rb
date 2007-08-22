@@ -295,12 +295,10 @@ module ActiveRecord
 		      if record_timestamps
 		        t = self.class.default_timezone == :utc ? Time.now.utc : Time.now
 		        if respond_to?(:updated_at)
-			        logger.info 'what the fuck?'
 			        write_attribute('updated_at', t)
 			        names << :updated_at
 			      end
 			      if respond_to?(:updated_on)
-			        logger.info 'what the fuck? on'
 			        write_attribute('updated_on', t)
 			        names << :updated_on 
 			      end
