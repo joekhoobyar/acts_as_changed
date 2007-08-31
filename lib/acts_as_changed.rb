@@ -20,6 +20,11 @@ module ActiveRecord
             class << self
               alias_method_chain :instantiate, :changed
             end
+	          self.class_eval do
+	            def update_attribute_without_timestamps(name, value)
+	              update_attribute name, value, false
+	            end
+	          end if with == :only
           end
         end
       end
@@ -181,13 +186,13 @@ module ActiveRecord
 	        save_changes || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	      
-	      def save_only(names, perform_validation = true)
+	      def save_only(names, perform_validation=true, with_timestamps=record_timestamps)
 		      return false if perform_validation && !valid?
-	        create_or_update_only(names)
+	        create_or_update_only(names, with_timestamps)
 	      end
 	      
 	      def save_only!(names)
-	        save_changes(names) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
+	        save_only(names) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	
 	      def update_attribute_with_changed(name, value)
@@ -195,9 +200,9 @@ module ActiveRecord
 	        save_changes(false)
 	      end
 	
-	      def update_attribute_with_only(name, value)
+	      def update_attribute_with_only(name, value, with_timestamps=record_timestamps)
 	        send(name.to_s + '=', value)
-	        save_only([name], false)
+	        save_only([name], false, with_timestamps)
 	      end
 	
 	      def update_attribute_without_validation_skipping_with_changed(name, value)
@@ -205,9 +210,9 @@ module ActiveRecord
 	        save_changes
 	      end
 	
-	      def update_attribute_without_validation_skipping_with_only(name, value)
+	      def update_attribute_without_validation_skipping_with_only(name, value, with_timestamps=record_timestamps)
 	        send(name.to_s + '=', value)
-	        save_only([name])
+	        save_only([name], true, with_timestamps)
 	      end
 	
 	      def update_attributes_with_changed(attributes)
@@ -259,10 +264,10 @@ module ActiveRecord
 	        true
 	      end
 	
-	      def create_or_update_only(names)
+	      def create_or_update_only(names, with_timestamps=record_timestamps)
 	        raise ReadOnlyRecord if readonly?
 		      return false if callback(:before_save) == false
-	        result = new_record? ? create : update_only(names)
+	        result = new_record? ? create : update_only(names, with_timestamps)
 	        return false if result == false
 		      callback(:after_save)
 	        @original_attributes = attributes
@@ -291,8 +296,8 @@ module ActiveRecord
 	
 	      # Updates the associated record with the named attributes only.
 	      # Returns the number of affected rows.
-	      def update_only(names)
-		      if record_timestamps
+	      def update_only(names, with_timestamps=record_timestamps)
+		      if with_timestamps
 		        t = self.class.default_timezone == :utc ? Time.now.utc : Time.now
 		        if respond_to?(:updated_at)
 			        write_attribute('updated_at', t)
