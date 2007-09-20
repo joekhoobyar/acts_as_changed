@@ -9,6 +9,10 @@ module ActiveRecord
         def acts_as_changed(options={})
           unless self.included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
             include InstanceMethods
+            
+            attribute_method_suffix :_original
+            attribute_method_suffix :_changed?
+            
 	          alias_method_chain :initialize, :changed
 	          alias_method_chain :clone, :changed
 	          alias_method_chain :create_or_update, :changed
@@ -17,6 +21,7 @@ module ActiveRecord
 	          alias_method_chain :update_attribute_without_validation_skipping, with
 	          alias_method_chain :update_attributes!, with
 	          alias_method_chain :update_attributes, with
+	          
             class << self
               alias_method_chain :instantiate, :changed
             end
@@ -76,6 +81,11 @@ module ActiveRecord
 	        @attributes[attribute] = @original_attributes[attribute]
 	      end
 	      alias :revert_attribute :reset_attribute
+	      
+	      # Returns the original value of an attribute.
+	      def attribute_original(attribute)
+	        read_original_attribute(attribute)
+	      end
 
         # Checks a single attribute to see if it has changed.	
 	      def attribute_changed?(attribute)
