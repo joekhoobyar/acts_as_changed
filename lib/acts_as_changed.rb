@@ -10,8 +10,8 @@ module ActiveRecord
           unless self.included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
             include InstanceMethods
             
-            attribute_method_suffix :_original
-            attribute_method_suffix :_changed?
+            attribute_method_suffix '_original'
+            attribute_method_suffix '_changed?'
             
 	          alias_method_chain :initialize, :changed
 	          alias_method_chain :clone, :changed
