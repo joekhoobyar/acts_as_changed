@@ -248,7 +248,7 @@ module ActiveRecord
 	      end
 	
 	      def changed_attribute_names
-	        original_attributes.diff(attributes).keys.sort
+	        original_attributes.diff(attributes).keys.reject { |k| k=='updated_at' }.sort
 	      end
 	
 	      def freeze
