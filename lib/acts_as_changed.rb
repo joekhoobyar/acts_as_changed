@@ -228,12 +228,18 @@ module ActiveRecord
 	      def update_attributes_with_changed(attributes)
 	        self.attributes = attributes
 	        save_changes
+		    rescue ActiveRecord::MultiparameterAssignmentErrors => e
+		      e.errors.map(&:attribute).uniq.each { |k| errors.add k, 'is not valid' }
+		      false
 	      end
 	      
 	      def update_attributes_with_only(attributes)
 	        return unless attributes.is_a? Hash
 	        self.attributes = attributes
 	        save_only attributes.keys.map { |k| n = k.index('('); n ? k[0,n].to_sym : k }.uniq
+		    rescue ActiveRecord::MultiparameterAssignmentErrors => e
+		      e.errors.map(&:attribute).uniq.each { |k| errors.add k, 'is not valid' }
+		      false
 	      end
 	      
 	      def update_attributes_with_changed!(attributes)
