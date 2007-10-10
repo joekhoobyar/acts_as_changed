@@ -236,7 +236,7 @@ module ActiveRecord
 	      def update_attributes_with_only(attributes)
 	        return unless attributes.is_a? Hash
 	        self.attributes = attributes
-	        save_only attributes.keys.map { |k| n = k.index('('); n ? k[0,n].to_sym : k }.uniq
+	        save_only attributes.keys.map { |k| k = k.to_s; n = k.index('('); (n ? k[0,n] : k).to_sym }.uniq
 		    rescue ActiveRecord::MultiparameterAssignmentErrors => e
 		      e.errors.map(&:attribute).uniq.each { |k| errors.add k, 'is not valid' }
 		      false
