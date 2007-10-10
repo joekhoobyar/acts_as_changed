@@ -233,7 +233,7 @@ module ActiveRecord
 	      def update_attributes_with_only(attributes)
 	        return unless attributes.is_a? Hash
 	        self.attributes = attributes
-	        save_only attributes.keys
+	        save_only attributes.keys.map { |k| n = k.index('('); n ? k[0,n].to_sym : k }.uniq
 	      end
 	      
 	      def update_attributes_with_changed!(attributes)
@@ -242,9 +242,7 @@ module ActiveRecord
 	      end
 	
 	      def update_attributes_with_only!(attributes)
-	        return unless attributes.is_a? Hash
-	        self.attributes = attributes
-	        save_only! attributes.keys
+	        update_attributes_with_only(attributes) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	
 	      def changed_attribute_names
