@@ -10,6 +10,7 @@ module ActiveRecord
           unless self.included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
             include InstanceMethods
             
+            attribute_method_suffix '_default'
             attribute_method_suffix '_original'
             attribute_method_suffix '_changed?'
             
@@ -82,10 +83,11 @@ module ActiveRecord
 	      end
 	      alias :revert_attribute :reset_attribute
 	      
+	      # Returns the default value of an attribute.
+	      alias :attribute_default :read_attribute_default
+	      
 	      # Returns the original value of an attribute.
-	      def attribute_original(attribute)
-	        read_original_attribute(attribute)
-	      end
+	      alias :attribute_original :read_original_attribute
 
         # Checks a single attribute to see if it has changed.	
 	      def attribute_changed?(attribute)
