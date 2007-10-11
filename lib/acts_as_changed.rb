@@ -82,12 +82,6 @@ module ActiveRecord
 	        @attributes[attribute] = @original_attributes[attribute]
 	      end
 	      alias :revert_attribute :reset_attribute
-	      
-	      # Returns the default value of an attribute.
-	      alias :attribute_default :read_attribute_default
-	      
-	      # Returns the original value of an attribute.
-	      alias :attribute_original :read_original_attribute
 
         # Checks a single attribute to see if it has changed.	
 	      def attribute_changed?(attribute)
@@ -336,6 +330,7 @@ module ActiveRecord
 		      result
 	      end
 	      
+	      # Returns the default value of an attribute, type-casted.
 	      def read_attribute_default(attr_name)
 	        attr_name = attr_name.to_s
 	        if column = column_for_attribute(attr_name)
@@ -348,10 +343,9 @@ module ActiveRecord
 	          column.default
 	        end
 	      end
+	      alias :attribute_default :read_attribute_default
 	      
-	      # Returns the value of the attribute identified by <tt>attr_name</tt> after it has been typecast (for example,
-	      # "2004-12-12" in a data column is cast to a date object, like Date.new(2004, 12, 12)).
-	      # Check for a changed_attribute first, then for original.
+	      # Returns the original value of the attribute, type-casted.
 	      def read_original_attribute(attr_name)
 	        attr_name = attr_name.to_s
 	        if !(value = @original_attributes[attr_name]).nil?
@@ -368,6 +362,7 @@ module ActiveRecord
 	          nil
 	        end
 	      end
+	      alias :attribute_original :read_original_attribute
 	
 	      def clone_changed_attributes(reader_method = :read_attribute, attributes = {})
 	        self.changed_attribute_names.inject(attributes) do |attributes, name|
