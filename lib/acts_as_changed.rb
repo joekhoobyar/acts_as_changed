@@ -1,11 +1,21 @@
 module ActiveRecord
   module Acts
     module Changed
-      def self.included(base)
+      def self.included(base) # :nodoc:
         base.extend(ClassMethods)
       end
       
       module ClassMethods
+      
+        # Makes an ActiveRecord model keep track of it's original attributes so that changes can be detected.
+        # 
+        # Only one option is supported:
+        # 
+        # update_changes:: true / false
+        # 
+        # If this option evaluates to true, update_attribute(s) and friends will update any changed attributes.
+        # Otherwise, by default, they will update each of the specified attribute(s).
+        # 
         def acts_as_changed(options={})
           unless self.included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
             include InstanceMethods
@@ -54,12 +64,14 @@ module ActiveRecord
 	        end
         end
         
+        # Initialization.
 	      def initialize_with_changed(attributes = nil)
 	        initialize_without_changed attributes
 	        @original_attributes = {}
 	        yield self if block_given?
 	      end
 	
+        # Initialization.
 	      def clone_with_changed
 	        clone_without_changed
 	        self.class.new do |record|
@@ -165,7 +177,8 @@ module ActiveRecord
 	          quoted
 	        end
 	      end
-	
+
+        # Returns true if any of the given attributes have changed.	
 	      def changed?(names=nil)
 	        return true if new_record?
 	        return ! original_attributes.diff(attributes).empty? if names.nil?
@@ -173,54 +186,67 @@ module ActiveRecord
 	        names.each do |name| return true if attr_changed?(name) end
 	        false
 	      end
-	
+
+        # Saves all of this record's attributes (a la save) only if any attribute has changed.	
 	      def save_if_changed
 	        changed? ? save : true
 	      end
-	
+
+        # Saves all of this record's attributes (a la save!) only if any attribute has changed.	
 	      def save_if_changed!
 	        changed? ? save! : true
 	      end
 	      
+        # Saves any changes to this record's attributes (a la save) only if any attribute has changed.	
 	      def save_changes(perform_validation = true)
 	        return true unless new_record? or changed?
 		      return false if perform_validation && !valid?
 	        create_or_update_changed
 	      end
 	      
+        # Saves any changes to this record's attributes (a la save!) only if any attribute has changed.	
 	      def save_changes!
 	        save_changes || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	      
+        # Saves only the named attributes (a la save).	
 	      def save_only(names, perform_validation=true, with_timestamps=record_timestamps)
 		      return false if perform_validation && !valid?
 	        create_or_update_only(names, with_timestamps)
 	      end
 	      
+        # Saves only the named attributes (a la save!).	
 	      def save_only!(names)
 	        save_only(names) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	
+        # Saves any changes to this record's attributes (a la update_attribute) only if any attribute has changed.	
 	      def update_attribute_with_changed(name, value)
 	        send(name.to_s + '=', value)
 	        save_changes(false)
 	      end
 	
+        # Saves only the given attribute (a la update_attribute).
 	      def update_attribute_with_only(name, value, with_timestamps=record_timestamps)
 	        send(name.to_s + '=', value)
 	        save_only([name], false, with_timestamps)
 	      end
 	
+        # Saves any changes to this record's attributes (a la update_attribute) only if any attribute has changed.
+        # Does *NOT* skip validation.	
 	      def update_attribute_without_validation_skipping_with_changed(name, value)
 	        send(name.to_s + '=', value)
 	        save_changes
 	      end
 	
+        # Saves only the given attribute (a la update_attribute).
+        # Does *NOT* skip validation.	
 	      def update_attribute_without_validation_skipping_with_only(name, value, with_timestamps=record_timestamps)
 	        send(name.to_s + '=', value)
 	        save_only([name], true, with_timestamps)
 	      end
 	
+        # Saves any changes to this record's attributes (a la update_attribute) only if any attribute has changed.	
 	      def update_attributes_with_changed(attributes)
 	        self.attributes = attributes
 	        save_changes
@@ -229,6 +255,7 @@ module ActiveRecord
 		      false
 	      end
 	      
+        # Saves only the given attribute (a la update_attribute).
 	      def update_attributes_with_only(attributes)
 	        return unless attributes.is_a? Hash
 	        self.attributes = attributes
@@ -238,15 +265,20 @@ module ActiveRecord
 		      false
 	      end
 	      
+        # Saves any changes to this record's attributes (a la update_attribute) only if any attribute has changed.
+        # Does *NOT* skip validation.	
 	      def update_attributes_with_changed!(attributes)
 	        self.attributes = attributes
 	        save_changes!
 	      end
 	
+        # Saves only the given attribute (a la update_attribute).
+        # Does *NOT* skip validation.	
 	      def update_attributes_with_only!(attributes)
 	        update_attributes_with_only(attributes) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
 	      end
 	
+        # Returns all changes attribute names.	
 	      def changed_attribute_names
 	        original_attributes.diff(attributes).keys.reject { |k| k=='updated_at' }.sort
 	      end
@@ -330,7 +362,6 @@ module ActiveRecord
 		      result
 	      end
 	      
-	      # Returns the default value of an attribute, type-casted.
 	      def read_attribute_default(attr_name)
 	        attr_name = attr_name.to_s
 	        if column = column_for_attribute(attr_name)
@@ -343,9 +374,7 @@ module ActiveRecord
 	          column.default
 	        end
 	      end
-	      alias :attribute_default :read_attribute_default
-	      
-	      # Returns the original value of the attribute, type-casted.
+	
 	      def read_original_attribute(attr_name)
 	        attr_name = attr_name.to_s
 	        if !(value = @original_attributes[attr_name]).nil?
@@ -362,14 +391,21 @@ module ActiveRecord
 	          nil
 	        end
 	      end
-	      alias :attribute_original :read_original_attribute
-	
+	      
 	      def clone_changed_attributes(reader_method = :read_attribute, attributes = {})
 	        self.changed_attribute_names.inject(attributes) do |attributes, name|
 	          attributes[name] = clone_attribute_value(reader_method, name)
 	          attributes
 	        end
 	      end
+
+      public
+      	      
+	      # Returns the default value of an attribute, type-casted.
+	      alias :attribute_default :read_attribute_default
+	      
+	      # Returns the original value of the attribute, type-casted.
+	      alias :attribute_original :read_original_attribute
       end
     end
   end

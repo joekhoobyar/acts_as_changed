@@ -1,4 +1,22 @@
 ActsAsChanged
 =============
 
-Description goes here
+Make an ActiveRecord model keep track of it's original attributes so that changes can be detected,
+and partial saves, dirty-flag detection and other change-driven algorithms are possible.
+
+Many new methods are added to ActiveRecord::Base related to changed attributes, and even few additional goodies.
+All of the callbacks still work, etc.
+
+The only core ActiveRecord::Base behaviour which is *automatically* changed by this plugin is the
+update_attribute and update_attributes methods (see below).
+
+Only one option is supported by the acts_as_changed method:
+
+::update_changes:: true / false
+
+If this option evaluates to true, update_attribute(s) and friends will update any changed attributes.
+Otherwise, by default, they will update each of the specified attribute(s).
+
+Author::    Joe Khoobyar (mailto:joe@collectivex.com)
+Copyright:: Copyright (c) 2007 CollectiveX, Inc.
+License::   GNU General Public License version 2
