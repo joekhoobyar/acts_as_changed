@@ -17,7 +17,7 @@ module ActiveRecord
         # Otherwise, by default, they will update each of the specified attribute(s).
         # 
         def acts_as_changed(options={})
-          unless self.included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
+          unless acts_as_changed?
             include InstanceMethods
             
             attribute_method_suffix '_default'
@@ -42,6 +42,11 @@ module ActiveRecord
 	            end
 	          end if with == :only
           end
+        end
+        
+        # Does this AR model support acts_as_changed?
+        def acts_as_changed?
+          included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
         end
       end
       
