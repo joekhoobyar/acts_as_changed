@@ -111,11 +111,11 @@ module ActiveRecord
 	        default_attributes = clone_attributes :read_attribute_default
 	        return default_attributes if options.nil?
 	        
-          if except = options[:except]
+          if (except = options[:except])
             except = Array(except).collect { |attribute| attribute.to_s }
             except.each { |attribute_name| default_attributes.delete(attribute_name) }
             default_attributes
-          elsif only = options[:only]
+          elsif (only = options[:only])
             only = Array(only).collect { |attribute| attribute.to_s }
             default_attributes.delete_if { |key, value| !only.include?(key) }
             default_attributes
@@ -129,11 +129,11 @@ module ActiveRecord
 	        attributes = clone_attributes :read_original_attribute
 	        return attributes if options.nil?
 	
-          if except = options[:except]
+          if (except = options[:except])
             except = Array(except).collect { |attribute| attribute.to_s }
             except.each { |attribute_name| attributes.delete(attribute_name) }
             attributes
-          elsif only = options[:only]
+          elsif (only = options[:only])
             only = Array(only).collect { |attribute| attribute.to_s }
             attributes.delete_if { |key, value| !only.include?(key) }
             attributes
@@ -147,11 +147,11 @@ module ActiveRecord
 	        attributes = clone_changed_attributes :read_attribute
 	        return attributes if options.nil?
 	        
-          if except = options[:except]
+          if (except = options[:except])
             except = Array(except).collect { |attribute| attribute.to_s }
             except.each { |attribute_name| attributes.delete(attribute_name) }
             attributes
-          elsif only = options[:only]
+          elsif (only = options[:only])
             only = Array(only).collect { |attribute| attribute.to_s }
             attributes.delete_if { |key, value| !only.include?(key) }
             attributes
@@ -211,7 +211,7 @@ module ActiveRecord
 	      
         # Saves any changes to this record's attributes (a la save!) only if any attribute has changed.	
 	      def save_changes!
-	        save_changes || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
+	        save_changes || _raise_save_errors
 	      end
 	      
         # Saves only the named attributes (a la save).	
@@ -222,7 +222,7 @@ module ActiveRecord
 	      
         # Saves only the named attributes (a la save!).	
 	      def save_only!(names)
-	        save_only(names) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
+	        save_only(names) || _raise_save_errors
 	      end
 	
         # Saves any changes to this record's attributes (a la update_attribute) only if any attribute has changed.	
@@ -280,7 +280,7 @@ module ActiveRecord
         # Saves only the given attribute (a la update_attribute).
         # Does *NOT* skip validation.	
 	      def update_attributes_with_only!(attributes)
-	        update_attributes_with_only(attributes) || raise(RecordNotSaved, (errors.full_messages.join(', ') rescue 'Could not save the record'))
+	        update_attributes_with_only(attributes) || _raise_save_errors
 	      end
 	
         # Returns all changes attribute names.	
@@ -293,6 +293,15 @@ module ActiveRecord
 	        @original_attributes.freeze
 	        self
 	      end
+
+      protected
+        unless method_defined? :_raise_save_errors
+          # Convenience to raise an error after attempting a save.
+        	def _raise_save_errors(title='Failed to save record:', body=nil)
+        	  body ||= errors.full_messages.join(', ') rescue '(no error messages)'
+        	  raise(RecordNotSaved, "#{title} #{body}")
+        	end
+        end
 	      
 	    private
 	      def create_or_update_with_changed
@@ -369,7 +378,7 @@ module ActiveRecord
 	      
 	      def read_attribute_default(attr_name)
 	        attr_name = attr_name.to_s
-	        if column = column_for_attribute(attr_name)
+	        if (column = column_for_attribute(attr_name))
 	          if unserializable_attribute?(attr_name, column)
 	            unserialize_value_for_attribute(column.default, column.name)
 	          else
@@ -383,7 +392,7 @@ module ActiveRecord
 	      def read_original_attribute(attr_name)
 	        attr_name = attr_name.to_s
 	        if !(value = @original_attributes[attr_name]).nil?
-	          if column = column_for_attribute(attr_name)
+	          if (column = column_for_attribute(attr_name))
 	            if unserializable_attribute?(attr_name, column)
 	              unserialize_attribute(attr_name)
 	            else
@@ -398,10 +407,8 @@ module ActiveRecord
 	      end
 	      
 	      def clone_changed_attributes(reader_method = :read_attribute, attributes = {})
-	        self.changed_attribute_names.inject(attributes) do |attributes, name|
-	          attributes[name] = clone_attribute_value(reader_method, name)
-	          attributes
-	        end
+	        self.changed_attribute_names.each { |name| attributes[name] = clone_attribute_value(reader_method, name) }
+	        attributes
 	      end
 
       public
