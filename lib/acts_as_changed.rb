@@ -22,6 +22,7 @@ module ActiveRecord
             
             attribute_method_suffix '_default'
             attribute_method_suffix '_original'
+            attribute_method_suffix '_original?'
             attribute_method_suffix '_changed?'
             
 	          alias_method_chain :initialize, :changed
@@ -105,6 +106,12 @@ module ActiveRecord
 	        read_original_attribute(attribute) != read_attribute(attribute)
 	      end
 	      alias :attr_changed? :attribute_changed?
+	
+        # Queries an original attribute value (like AR's query_attribute).
+	      def attribute_original?(attribute)
+	        query_original_attribute(attribute)
+	      end
+	      alias :attr_original? :attribute_original?
 	
 	      # Returns a hash of all the default attributes with their names as keys and clones of their objects as values.
 	      def default_attributes(options = nil)
@@ -405,6 +412,27 @@ module ActiveRecord
 	          nil
 	        end
 	      end
+        
+        def query_original_attribute(attr_name)
+          attribute = @original_attributes[attr_name.to_s]
+          if attribute.kind_of?(Fixnum) && attribute == 0
+            false
+          elsif attribute.kind_of?(String) && attribute == "0"
+            false
+          elsif attribute.kind_of?(String) && attribute.empty?
+            false
+          elsif attribute.nil?
+            false
+          elsif attribute == false
+            false
+          elsif attribute == "f"
+            false
+          elsif attribute == "false"
+            false
+          else
+            true
+          end
+        end
 	      
 	      def clone_changed_attributes(reader_method = :read_attribute, attributes = {})
 	        self.changed_attribute_names.each { |name| attributes[name] = clone_attribute_value(reader_method, name) }
