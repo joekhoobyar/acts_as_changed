@@ -183,9 +183,8 @@ module ActiveRecord
 	      # an SQL statement.
 	      def named_attributes_with_quotes(names)
 	        names.inject({}) do |quoted, name|
-	          if column = column_for_attribute(name)
-		          quoted[name] = quote_value(attributes[name.to_s], column)
-		        end
+	          column = column_for_attribute(name)
+            quoted[column.name] = quote_value(attributes[column.name.to_s], column) unless column.nil? or quoted.key?(column.name)
 	          quoted
 	        end
 	      end
