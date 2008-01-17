@@ -342,11 +342,12 @@ module ActiveRecord
 	      def update_changed
 		      if record_timestamps
 		        t = self.class.default_timezone == :utc ? Time.now.utc : Time.now
-		        write_attribute('updated_at', t) if respond_to?(:updated_at)
+		        write_attribute('updated_at', t) if (stamped = respond_to?(:updated_at))
 		        write_attribute('updated_on', t) if respond_to?(:updated_on)
 		      end
 		      return false if callback(:before_update) == false
 		      chgs = changed_attributes_with_quotes(false)
+		      chgs['updated_at'] = connection.quote(updated_at) if stamped
 	        result = chgs.empty? || connection.update(
 	          "UPDATE #{self.class.table_name} " +
 	          "SET #{quoted_comma_pair_list(connection, chgs)} " +
