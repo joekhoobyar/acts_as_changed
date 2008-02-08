@@ -47,7 +47,7 @@ module ActiveRecord
         
         # Does this AR model support acts_as_changed?
         def acts_as_changed?
-          included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods)
+          @acts_as_changed || (@acts_as_changed = included_modules.include?(ActiveRecord::Acts::Changed::InstanceMethods))
         end
       end
       
