@@ -17,32 +17,31 @@ module ActiveRecord
         # Otherwise, by default, they will update each of the specified attribute(s).
         # 
         def acts_as_changed(options={})
-          unless acts_as_changed?
-            include InstanceMethods
+          return if acts_as_changed?
+          include InstanceMethods
             
-            attribute_method_suffix '_default'
-            attribute_method_suffix '_original'
-            attribute_method_suffix '_original?'
-            attribute_method_suffix '_changed?'
+          attribute_method_suffix '_default'
+          attribute_method_suffix '_original'
+          attribute_method_suffix '_original?'
+          attribute_method_suffix '_changed?'
             
-	          alias_method_chain :initialize, :changed
-	          alias_method_chain :clone, :changed
-	          alias_method_chain :create_or_update, :changed
-	          with = options[:update_changes] ? :changed : :only
-	          alias_method_chain :update_attribute, with
-	          alias_method_chain :update_attribute_without_validation_skipping, with
-	          alias_method_chain :update_attributes!, with
-	          alias_method_chain :update_attributes, with
+	        alias_method_chain :initialize, :changed
+	        alias_method_chain :clone, :changed
+	        alias_method_chain :create_or_update, :changed
+	        with = options[:update_changes] ? :changed : :only
+	        alias_method_chain :update_attribute, with
+	        alias_method_chain :update_attribute_without_validation_skipping, with
+	        alias_method_chain :update_attributes!, with
+	        alias_method_chain :update_attributes, with
 	          
-            class << self
-              alias_method_chain :instantiate, :changed
-            end
-	          self.class_eval do
-	            def update_attribute_without_timestamps(name, value)
-	              update_attribute name, value, false
-	            end
-	          end if with == :only
+          class << self
+            alias_method_chain :instantiate, :changed
           end
+	        self.class_eval do
+	          def update_attribute_without_timestamps(name, value)
+	            update_attribute name, value, false
+	          end
+	        end if with == :only
         end
         
         # Does this AR model support acts_as_changed?
