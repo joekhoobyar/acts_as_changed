@@ -18,5 +18,5 @@ If this option evaluates to true, update_attribute(s) and friends will update an
 Otherwise, by default, they will update each of the specified attribute(s).
 
 Author::    Joe Khoobyar (mailto:joe@collectivex.com)
-Copyright:: Copyright (c) 2007 CollectiveX, Inc.
+Copyright:: Copyright (c) 2007-2008 CollectiveX, Inc.
 License::   GNU General Public License version 2
